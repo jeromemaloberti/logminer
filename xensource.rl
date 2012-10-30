@@ -12,6 +12,7 @@ let fail fmt = Printf.ksprintf failwith fmt
   machine xensource;
   write data;
   include date_time "date_time.rl";
+  include message "message.rl";
 }%%
 
 let parse_xensource ?log_counter data =
@@ -41,7 +42,6 @@ let parse_xensource ?log_counter data =
   
 %%{
   action do_nothing { }
-  action mark_pos { _pos := !p }
   action print_string { Printf.printf "[%s] " (get_current_string ()) }
   action thread_id { thread_id := !_int }
   action thread_info { thread_info := Some (get_current_string ()) }
@@ -51,7 +51,6 @@ let parse_xensource ?log_counter data =
   action error { level := Log.Error }
   action host { host := get_current_string () }
   action key { key := get_current_string () }
-  action message { message := get_current_string () }
   action repeat_msg { empty_log_line := true }
   action task_name { 
     if !task_ref_bool then begin
@@ -62,13 +61,6 @@ let parse_xensource ?log_counter data =
     end
   }
   action task_ref { task_ref_bool := true; }
-  action is_exception { 
-    error := Log.Got_exception; 
-    _pos := !p;
-  }
-  action is_error { 
-    error := Log.Got_error; 
-  }
 
   host1 = (any - space)+;
   host2 = (any - '|')+ >mark_pos %host;
@@ -83,10 +75,6 @@ let parse_xensource ?log_counter data =
   task = ((task_name >mark_pos :> task_ref) %task_name) | ((task_name >mark_pos) %task_name) | "";
   key = (any - ']')+ >mark_pos %key;
   description = '[' level_re '|' host2 '|' thread '|' task '|' key ']';
-  is_exception = 'Raised at ' >is_exception . any*;
-  is_error = any* >mark_pos :> 'Got exception' >is_error . any*; 
-  is_internal = any* >mark_pos :> 'INTERNAL' >is_error . any*; 
-  message = ((any* >mark_pos) | (is_exception) | (is_error) | (is_internal)) %/message;
   squeezed = path? . 'squeezed:'; 
   repeat_msg = ('last message repeated ' . any+) @repeat_msg;
   main := date_time_re . space . host1 . space . 

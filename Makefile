@@ -8,7 +8,7 @@ _obuild/logminer/logminer.asm: xensource.ml logminer.ocp *.ml
 xensource.dot: xensource.rl
 	$(RAGEL) $(RAGELFLAGS) -V -p $< -o $@
 
-xensource.ml: xensource.rl date_time.rl
+xensource.ml: xensource.rl date_time.rl message.rl
 	$(RAGEL) $(RAGELFLAGS) -O -G0 $< -o $@
 
 session_parser.dot: session_parser.rl
