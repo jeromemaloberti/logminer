@@ -1,0 +1,33 @@
+
+
+    (************************************)
+    (*   Never edit options files while  *)
+    (*       the program is running      *)
+    (************************************)
+    (* SECTION : Header *)
+    (* These options must be read first *)
+    (************************************)
+
+
+
+	(* List of configuration files for this project *)
+ files = [
+  "logminer.ocp";
+  "ocp-standard-ocaml.ocp";]
+
+	(* The version of ocp-build used to save this file *)
+ ocpbuild_version = "2011-11-16 08:47 Fabrice"
+
+	(* Always scan for .ocp files in this project sub-directories
+	 - 'None' means use default user settings;
+	 - 'true'/'false' override user setttings *)
+ autoscan = false
+
+	(* Number of cores to use on this computer *)
+ ncores = 4
+
+	(* Default verbosity *)
+ verbosity = 0
+
+	(* Use content digest change instead of modification to trigger recompilation *)
+ digest = false
