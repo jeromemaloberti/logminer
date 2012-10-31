@@ -16,12 +16,6 @@ let debug (fmt: ('a, unit, string, unit) format4) : 'a =
 (*********************************************************************************)
 let short_reference_size = 14
 
-let task_begins_creation = Str.regexp "task \\(.*\\) created\\( (trackid=\\(.*\\))\\)?\\( by .*\\)?"
-let task_begins_forward = Str.regexp "task \\(.*\\) forwarded\\( (trackid=\\(.*\\))\\)?"
-let task_begins_async = Str.regexp "spawning a new thread to handle the current task\\( (trackid=\\(.*\\))\\)?"
-let task_ends = Str.regexp "task destroyed\\|forwarded task destroyed\\|nothing more to process for this thread"
-let is_async_task = Util.startswith "Async"
-
 let uuid_size = 36
 let remove_uuid s =
 	try let rindex = String.rindex s '(' in
@@ -53,7 +47,7 @@ let dispatch_task s =
 
 (*********************************************************************************)
 
-type session = Session_parser.session
+type session = Xensource.session
 
 type env = {
 	log_queue : Filter.Base.log Queue.t;
@@ -100,7 +94,7 @@ let env_to_db env =
 	let tasks = Hashtbl.fold (fun _ task accu -> task:: accu) env.task_tbl [] in
 	let tasks = List.sort Task.compare tasks in
 	
-	let sessions = Hashtbl.fold (fun _ session accu -> match session with Session_parser.Session s -> s :: accu | Session_parser.Destruction _ -> accu) env.session_tbl [] in
+	let sessions = Hashtbl.fold (fun _ session accu -> match session with Xensource.Session s -> s :: accu | Xensource.Destruction _ -> accu) env.session_tbl [] in
 	let sessions = List.sort Session.compare sessions in
 	
 	Db.make ~logs ~tasks ~sessions
@@ -130,24 +124,24 @@ struct
 		let trackid = Session.trackid s in
 		if Hashtbl.mem env.session_tbl trackid then begin
 			match Hashtbl.find env.session_tbl trackid with
-			| Session_parser.Session _ -> debug "Warning: duplicated session creation for trackid: %s" trackid; ()
-			| Session_parser.Destruction (_, d) ->
+			| Xensource.Session _ -> debug "Warning: duplicated session creation for trackid: %s" trackid; ()
+			| Xensource.Destruction (_, d) ->
 				Session.set_destruction s d;
-				Hashtbl.replace env.session_tbl trackid (Session_parser.Session s)
+				Hashtbl.replace env.session_tbl trackid (Xensource.Session s)
 		end else
-			Hashtbl.add env.session_tbl trackid (Session_parser.Session s)
+			Hashtbl.add env.session_tbl trackid (Xensource.Session s)
 	
 	let session_destruction env trackid date =
 		if Hashtbl.mem env.session_tbl trackid then begin
 			match Hashtbl.find env.session_tbl trackid with
-			| Session_parser.Session s -> Session.set_destruction s date
-			| Session_parser.Destruction _ -> debug "Warning: duplicated session destruction for trackid %s" trackid; ()
+			| Xensource.Session s -> Session.set_destruction s date
+			| Xensource.Destruction _ -> debug "Warning: duplicated session destruction for trackid %s" trackid; ()
 		end else
-			Hashtbl.add env.session_tbl trackid (Session_parser.Destruction (trackid, date))
+			Hashtbl.add env.session_tbl trackid (Xensource.Destruction (trackid, date))
 	
 	let session env = function
-		| Some (Session_parser.Session s) -> session_creation env s
-		| Some (Session_parser.Destruction (trackid, date)) -> session_destruction env trackid date
+		| Some (Xensource.Session s) -> session_creation env s
+		| Some (Xensource.Destruction (trackid, date)) -> session_destruction env trackid date
 		| None -> ()
 	
 	let update_session_of_task env task =
@@ -156,10 +150,10 @@ struct
 		| Some trackid ->
 			if Hashtbl.mem env.session_tbl trackid then
 				match Hashtbl.find env.session_tbl trackid with
-				| Session_parser.Session session ->
+				| Xensource.Session session ->
 					Task.set_session task session;
 					Session.add_task session task
-				| Session_parser.Destruction _ -> ()
+				| Xensource.Destruction _ -> ()
 	
 	(*---------------------- First update stage of task informations ---------------------------------*)
 	(* At this point, the task relationships are not relevant as log lines are not ordered when files *)
@@ -221,10 +215,17 @@ let get n expr =
 	with Not_found -> None
 
 let log_of_line ?log_counter line =
-  let log = Xensource.parse_xensource line in
-  match log with None -> None
+  let log,session = Xensource.parse_xensource line in
+  let log = match log with None -> None
     | Some (d,h,l,tn,ti,tr,ta,k,e,m) ->
-        Some (Log.make d h l tn ti tr ta k e m)
+        Some (Log.make d h l tn ti tr ta k e m) in
+  (log,session)
+
+let task_begins_creation = Str.regexp "task \\(.*\\) created\\( (trackid=\\(.*\\))\\)?\\( by .*\\)?"
+let task_begins_forward = Str.regexp "task \\(.*\\) forwarded\\( (trackid=\\(.*\\))\\)?"
+let task_begins_async = Str.regexp "spawning a new thread to handle the current task\\( (trackid=\\(.*\\))\\)?"
+let task_ends = Str.regexp "task destroyed\\|forwarded task destroyed\\|nothing more to process for this thread"
+let is_async_task = Util.startswith "Async"
 
 let tasks_of_log cache log =
 	let msg = Log.msg log in
@@ -334,26 +335,26 @@ let session_of_log_old log =
 		let uname = Str.matched_group 3 msg in
 		let is_local_superuser = bool_of_string (Str.matched_group 4 msg) in
 		let auth_user_sid = Str.matched_group 5 msg in
-		Some (Session_parser.Session (Session.create ~trackid ~pool ~uname ~is_local_superuser ~auth_user_sid ~creation: (Log.date log)))
+		Some (Xensource.Session (Session.create ~trackid ~pool ~uname ~is_local_superuser ~auth_user_sid ~creation: (Log.date log)))
 		
 	end else if Str.string_match session_destroyed msg 0 || Str.string_match session_gc msg 0 then begin
 		(* if the session is destroyed *)
 		let trackid = Str.matched_group 1 msg in
-		Some (Session_parser.Destruction (trackid, Log.date log))
+		Some (Xensource.Destruction (trackid, Log.date log))
 		
 	end else
 		None
-
+(*
 let session_of_log log =
-  Session_parser.parse_xensource_session (Log.date log) (Log.msg log)
-
+  Xensource.parse_xensource_session (Log.date log) (Log.msg log)
+*)
 let parse_line cache line =
 	match log_of_line line with
-	| Some log ->
+	| (Some log,session) ->
 		let task, created_task = tasks_of_log cache log in
-		let session = session_of_log log in
+(*		let session = session_of_log log in *)
 		Some (log, task, created_task, session)
-	| None -> None
+	| (None,None) -> None
 
 let parse_and_update_line env line =
 	match parse_line env.task_tbl line with
@@ -366,13 +367,13 @@ let parse_and_update_line env line =
 
 let info_of_line line =
 	match log_of_line line with
-	| Some log -> Some (Log.host log, Log.date log)
-	| None -> None
+	| (Some log, _) -> Some (Log.host log, Log.date log)
+	| (None,None) -> None
 
 let need_checking_file env file =
 	let check_line l = match log_of_line l with
-		| None -> false
-		| Some _ -> true in
+		| (None,None) -> false
+		| (Some _,_) -> true in
 	let log_filter l = match parse_line env.task_tbl l with
 		| None -> false
 		| Some (log, _, _, _) -> env.log_filter log in

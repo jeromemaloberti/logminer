@@ -8,6 +8,10 @@ let debug (fmt: ('a, unit, string, unit) format4) : 'a =
 
 let fail fmt = Printf.ksprintf failwith fmt
 
+let line_num = ref 0
+
+type session = Session of Filter.Base.session | Destruction of string * Date.t
+
 %%{
   machine xensource;
   write data;
@@ -40,10 +44,22 @@ let parse_xensource ?log_counter data =
   let _pos = ref 0 in
   let get_current_string () = String.sub data !_pos (!p - !_pos) in
   
+  let pool = ref false in
+  let uname = ref "" in
+  let local_su = ref false in
+  let trackid = ref "" in
+(*  let parent_trackid = ref "" in *)
+  let auth = ref "" in
+  let session_log = ref None in
+  let date = ref None in
+
 %%{
   action do_nothing { }
   action print_string { Printf.printf "[%s] " (get_current_string ()) }
-  action thread_id { thread_id := !_int }
+  action thread_id { 
+    thread_id := !_int;
+    date := Some (Date.make ~day:!day ~month:!month ~year:2012 ~hours:!hour ~minutes:!min ~seconds:!sec ~ms:0 ~line: (match log_counter with Some l -> l | None -> 0))
+  }
   action thread_info { thread_info := Some (get_current_string ()) }
   action info { level := Log.Info }
   action warn { level := Log.Warn }
@@ -84,8 +100,9 @@ let parse_xensource ?log_counter data =
   write exec;
 }%%
 
+  line_num := !line_num + 1;
 	if !cs < xensource_first_final then
-    fail "xensource: cs %d < %d" !cs xensource_first_final;
+    fail "xensource: line %d cs %d < %d" !line_num !cs xensource_first_final;
 (*
   let get_string v = match v with None -> "(none)" | Some s -> s in
   if !empty_log_line then begin
@@ -98,11 +115,12 @@ let parse_xensource ?log_counter data =
   end;
 *)
   if !empty_log_line then begin
-    None
+    (None,None)
   end else begin
-    let date = Date.make ~day:!day ~month:!month ~year:2012 ~hours:!hour ~minutes:!min ~seconds:!sec ~ms:0 ~line: (match log_counter with Some l -> l | None -> 0) in
-    let log = (date, !host, !level, !thread_info, !thread_id, !task_ref, !task_name, !key, !error, !message) in
-    Some log
+    let d = match !date with None -> fail "Date not created"
+      | Some v -> v in
+    let log = (d, !host, !level, !thread_info, !thread_id, !task_ref, !task_name, !key, !error, !message) in
+    (Some log, !session_log)
   end
   ;;
 (*  
