@@ -320,12 +320,12 @@ let tasks_of_log cache log =
 	Util.may (fun t -> Task.add_log t log) task;
 	Util.may (fun t -> Task.add_log t log) created_task;
 	task, created_task
-
+(*
 let session_created = Str.regexp "Session.create trackid=\\(.*\\) pool=\\(true\\|false\\) uname=\\(.*\\) is_local_superuser=\\(true\\|false\\) auth_user_sid=\\(.*\\)"
 let session_destroyed = Str.regexp "Session.destroy trackid=\\(.*\\)"
 let session_gc = Str.regexp "Session.destroy _ref=\\(.*\\) (last active .*"
 
-let session_of_log_old log =
+let session_of_log log =
 	let msg = Log.msg log in
 	
 	if Str.string_match session_created msg 0 then begin
@@ -344,9 +344,6 @@ let session_of_log_old log =
 		
 	end else
 		None
-(*
-let session_of_log log =
-  Xensource.parse_xensource_session (Log.date log) (Log.msg log)
 *)
 let parse_line cache line =
 	match log_of_line line with
