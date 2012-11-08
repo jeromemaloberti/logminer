@@ -11,42 +11,6 @@ let info (fmt: ('a, unit, string, unit) format4) : 'a =
 let debug (fmt: ('a, unit, string, unit) format4) : 'a =
 	kprintf (fun s -> print_endline s; flush stdout) fmt
 
-(*********************************************************************************)
-(* Change the following functions if the format of xapi logging function changes *)
-(*********************************************************************************)
-let short_reference_size = 14
-
-let uuid_size = 36
-let remove_uuid s =
-	try let rindex = String.rindex s '(' in
-		if s.[rindex + 1] = 'u' && s.[rindex + 2] = 'u' && s.[rindex + 3] = 'i' && s.[rindex + 4] = 'd' && s.[rindex + 5] = ':'
-		then String.sub s 0 (rindex - 1), Some (String.sub s (rindex + 6) uuid_size)
-		else s, None
-	with _ -> s, None
-
-let get_reference s =
-	let s, _ = remove_uuid s in
-	let n = String.length s in
-	String.sub s (n - short_reference_size) short_reference_size
-
-let get_reference_name_and_uuid s =
-	let s, uuid = remove_uuid s in
-	let n = String.length s in
-	String.sub s (n - short_reference_size) short_reference_size,
-	String.sub s 0 (n - short_reference_size - 1),
-	uuid
-
-let is_a_dispatch_task = function
-	| None -> false
-	| Some t -> Util.startswith "dispatch:" (Task.task_name t)
-
-let dispatch_task s =
-	let n = String.length s in
-	let k = String.length "dispatch:" in
-	String.sub s k (n-k)
-
-(*********************************************************************************)
-
 type session = Xensource.session
 
 type env = {
@@ -215,143 +179,102 @@ let get n expr =
 	with Not_found -> None
 
 let log_of_line ?log_counter line =
-  let log,session = Xensource.parse_xensource line in
+  let log,session,task = Xensource.parse_xensource line in
   let log = match log with None -> None
     | Some (d,h,l,tn,ti,tr,ta,k,e,m) ->
         Some (Log.make d h l tn ti tr ta k e m) in
-  (log,session)
+  (log,session,task)
 
-let task_begins_creation = Str.regexp "task \\(.*\\) created\\( (trackid=\\(.*\\))\\)?\\( by .*\\)?"
-let task_begins_forward = Str.regexp "task \\(.*\\) forwarded\\( (trackid=\\(.*\\))\\)?"
-let task_begins_async = Str.regexp "spawning a new thread to handle the current task\\( (trackid=\\(.*\\))\\)?"
-let task_ends = Str.regexp "task destroyed\\|forwarded task destroyed\\|nothing more to process for this thread"
+let is_a_dispatch_task = function
+	| None -> false
+	| Some t -> Util.startswith "dispatch:" (Task.task_name t)
+
 let is_async_task = Util.startswith "Async"
 
-let tasks_of_log cache log =
-	let msg = Log.msg log in
+let tasks_of_log cache log parsed_task =
 	let host = Log.host log in
 	let thread_id = Log.thread_id log in
 	(* The current task *)
 	let task =
-		let destruction = Str.string_match task_ends msg 0 in
 		let t =
 			match Log.task_ref log with
 			| None -> None
 			| Some task_ref ->
-				if Hashtbl.mem cache (Log.host log, Log.thread_id log, task_ref)
-				then Some (Hashtbl.find cache (host, thread_id, task_ref))
-				else Task.from_log log in
+				  if Hashtbl.mem cache (Log.host log, Log.thread_id log, task_ref)
+				  then Some (Hashtbl.find cache (host, thread_id, task_ref))
+				  else Task.from_log log in
 		Util.may
 			(fun x ->
-					if destruction then Task.set_destroyed x;
-					if Task.has_no_parent x then Task.set_parent_to_ref x (Task.task_ref x))
+				if parsed_task = Xensource.TaskDestruction then Task.set_destroyed x;
+				if Task.has_no_parent x then Task.set_parent_to_ref x (Task.task_ref x))
 			t;
 		t
 	in
 	(* Created task *)
 	let created_task =
-		if Str.string_match task_begins_creation msg 0 then begin
-			(* If the task is created *)
-			let current_task = Str.matched_group 1 msg in
-			let task_ref, task_name, task_uuid = get_reference_name_and_uuid current_task in
-			let trackid = get 3 msg in
-			let t =
-				if Hashtbl.mem cache (host, thread_id, task_ref)
-				then Hashtbl.find cache (host, thread_id, task_ref)
-				else Task.create ~task_ref ~task_name ~task_uuid ~trackid ~log in
-			begin try
-				let parent_ref = get_reference (Str.matched_group 4 msg) in
-				Task.set_parent_to_ref t parent_ref;
-			with Not_found ->
-				Util.may (fun task -> Task.set_parent_to_update t task) task
-			end;
-			if not (is_async_task task_name) then Task.set_created t;
-			Some t
-			
-		end else if Str.string_match task_begins_forward msg 0 then begin
-			(* If the task is forwarded *)
-			let current_task = Str.matched_group 1 msg in
-			let task_ref, task_name, task_uuid = get_reference_name_and_uuid current_task in
-			let trackid = get 3 msg in
-			let t =
-				if Hashtbl.mem cache (host, thread_id, task_ref)
-				then Hashtbl.find cache (host, thread_id, task_ref)
-				else Task.create ~task_ref ~task_name ~task_uuid ~trackid ~log in
-			Task.set_parent_to_ref t task_ref;
-			Task.set_created t;
-			Some t
-			
-		end else if Str.string_match task_begins_async msg 0 then begin
-			(* If the task is asynchronous *)
-			let trackid = get 2 msg in
-			let t =
-				match Log.task_ref log with
-				| None -> None
-				| Some task_ref ->
-					if Hashtbl.mem cache (host, thread_id, task_ref)
-					then Some (Hashtbl.find cache (host, thread_id, task_ref))
-					else Task.from_log log in
-			Util.may
-				(fun t ->
-						Task.set_trackid t trackid;
-						Task.set_created t;
-						Util.may (fun task -> Task.set_parent_to_update t task) task)
-				t;
-			t
-			
-		end else
-			None
+    match parsed_task with  
+      | Xensource.TaskDestruction -> None
+      | Xensource.TaskCreation(task_name,task_ref,task_uuid,trackid, parent_ref, forwarded) -> 
+          begin
+			      let t =
+			        if Hashtbl.mem cache (host, thread_id, task_ref)
+			        then Hashtbl.find cache (host, thread_id, task_ref)
+			        else Task.create ~task_ref ~task_name ~task_uuid ~trackid ~log in
+            if forwarded then begin
+			        Task.set_parent_to_ref t task_ref;
+			        Task.set_created t
+            end else begin
+              (match parent_ref with
+                | Some p_ref -> Task.set_parent_to_ref t p_ref; 
+                | None -> Util.may (fun task -> Task.set_parent_to_update t task) task);
+			        if not (is_async_task task_name) then Task.set_created t;
+            end;
+			      Some t
+          end
+      | Xensource.TaskAsync(trackid) ->
+					(* If the task is asynchronous *)
+			    let t =
+				    match Log.task_ref log with
+				      | None -> None
+				      | Some task_ref ->
+					        if Hashtbl.mem cache (host, thread_id, task_ref)
+					        then Some (Hashtbl.find cache (host, thread_id, task_ref))
+					        else Task.from_log log in
+			    Util.may
+				    (fun t ->
+              Task.set_trackid t trackid;
+						  Task.set_created t;
+						  Util.may (fun task -> Task.set_parent_to_update t task) task)
+				    t;
+			    t
+      | Xensource.Nothing ->
+			    None
 	in
 	
 	(* If the created task is a dispatch one, insert it betweem it its child and and the child's parent *)
 	if is_a_dispatch_task task then begin
 		match task, created_task with
-		| None, _ | _, None -> ()
-		| Some task, Some created_task ->
-			match created_task.Task.parent with
-			| Task.Task_to_update p when p == task && Task.is_in_db created_task ->
-				Task.set_parent_to_ref task (Task.task_ref created_task)
-			| Task.Task_to_update _ -> ()
-			| parent ->
-				Task.set_parent_to_update created_task task;
-				task.Task.parent <- parent
+		  | None, _ | _, None -> ()
+		  | Some task, Some created_task ->
+			    match created_task.Task.parent with
+			      | Task.Task_to_update p when p == task && Task.is_in_db created_task ->
+				        Task.set_parent_to_ref task (Task.task_ref created_task)
+			      | Task.Task_to_update _ -> ()
+			      | parent ->
+				        Task.set_parent_to_update created_task task;
+				        task.Task.parent <- parent
 	end;
 	
 	Util.may (fun t -> Task.add_log t log) task;
 	Util.may (fun t -> Task.add_log t log) created_task;
 	task, created_task
-(*
-let session_created = Str.regexp "Session.create trackid=\\(.*\\) pool=\\(true\\|false\\) uname=\\(.*\\) is_local_superuser=\\(true\\|false\\) auth_user_sid=\\(.*\\)"
-let session_destroyed = Str.regexp "Session.destroy trackid=\\(.*\\)"
-let session_gc = Str.regexp "Session.destroy _ref=\\(.*\\) (last active .*"
 
-let session_of_log log =
-	let msg = Log.msg log in
-	
-	if Str.string_match session_created msg 0 then begin
-		(* If the session is created *)
-		let trackid = Str.matched_group 1 msg in
-		let pool = bool_of_string (Str.matched_group 2 msg) in
-		let uname = Str.matched_group 3 msg in
-		let is_local_superuser = bool_of_string (Str.matched_group 4 msg) in
-		let auth_user_sid = Str.matched_group 5 msg in
-		Some (Xensource.Session (Session.create ~trackid ~pool ~uname ~is_local_superuser ~auth_user_sid ~creation: (Log.date log)))
-		
-	end else if Str.string_match session_destroyed msg 0 || Str.string_match session_gc msg 0 then begin
-		(* if the session is destroyed *)
-		let trackid = Str.matched_group 1 msg in
-		Some (Xensource.Destruction (trackid, Log.date log))
-		
-	end else
-		None
-*)
 let parse_line cache line =
 	match log_of_line line with
-	| (Some log,session) ->
-		let task, created_task = tasks_of_log cache log in
-(*		let session = session_of_log log in *)
+	| (Some log,session,task) ->
+		let task, created_task = tasks_of_log cache log task in
 		Some (log, task, created_task, session)
-	| (None,None) -> None
+	| (None,_,_) -> None
 
 let parse_and_update_line env line =
 	match parse_line env.task_tbl line with
@@ -364,13 +287,13 @@ let parse_and_update_line env line =
 
 let info_of_line line =
 	match log_of_line line with
-	| (Some log, _) -> Some (Log.host log, Log.date log)
-	| (None,None) -> None
+	| (Some log, _, _) -> Some (Log.host log, Log.date log)
+	| (None,_,_) -> None
 
 let need_checking_file env file =
 	let check_line l = match log_of_line l with
-		| (None,None) -> false
-		| (Some _,_) -> true in
+		| (None,_,_) -> false
+		| (Some _,_, _) -> true in
 	let log_filter l = match parse_line env.task_tbl l with
 		| None -> false
 		| Some (log, _, _, _) -> env.log_filter log in

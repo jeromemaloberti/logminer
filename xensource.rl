@@ -10,6 +10,11 @@ let fail fmt = Printf.ksprintf failwith fmt
 
 let line_num = ref 0
 
+type task = TaskDestruction 
+            | TaskCreation of string * string * string option * string option * string option * bool
+            | TaskAsync of string option
+            | Nothing
+
 type session = Session of Filter.Base.session | Destruction of string * Date.t
 
 %%{
@@ -42,6 +47,7 @@ let parse_xensource ?log_counter data =
   let error = ref Log.Ok in
   let _int = ref 0 in 
   let _pos = ref 0 in
+  let mesg_pos = ref 0 in
   let get_current_string () = String.sub data !_pos (!p - !_pos) in
   
   let pool = ref false in
@@ -52,7 +58,12 @@ let parse_xensource ?log_counter data =
   let auth = ref "" in
   let session_log = ref None in
   let date = ref None in
-
+  let mesg_task_name = ref "" in
+  let mesg_task_ref = ref "" in
+  let mesg_task_uuid = ref None in
+  let mesg_task_trackid = ref None in
+  let mesg_parent_task_ref = ref None in
+  let mesg_task = ref Nothing in
 %%{
   action do_nothing { }
   action print_string { Printf.printf "[%s] " (get_current_string ()) }
@@ -115,12 +126,12 @@ let parse_xensource ?log_counter data =
   end;
 *)
   if !empty_log_line then begin
-    (None,None)
+    (None,None,Nothing)
   end else begin
     let d = match !date with None -> fail "Date not created"
       | Some v -> v in
     let log = (d, !host, !level, !thread_info, !thread_id, !task_ref, !task_name, !key, !error, !message) in
-    (Some log, !session_log)
+    (Some log, !session_log, !mesg_task)
   end
   ;;
 (*  

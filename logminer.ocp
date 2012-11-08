@@ -1,8 +1,11 @@
 ocamlc = ["ocp-ocamlc.opt"]
-ocamlopt = ["ocp-ocamlopt.opt"]
+ocamlopt = ["ocp-ocamlopt.opt"; "-p"]
 ocamldep = ["ocamldep.opt"]
 ocamllex = ["ocamllex.opt"]
 ocamlyacc = ["ocamlyacc"]
+
+comp = ["-g"; "-warn-error"; "A"]
+link = ["-g"]
 
 cflags = []
 (* ccopt = [] *)

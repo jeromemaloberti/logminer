@@ -94,7 +94,7 @@ let _ =
 		end;
 		
 		(* 4. Finally, display either one aggregated log file or a task tree *)
-		match !format, display with
+		(match !format, display with
 		| Text, Log -> To_text.Log.from_db db
 		| Text, Task -> To_text.Task.from_db db
 		| Text, Session -> To_text.Session.from_db db
@@ -115,4 +115,5 @@ let _ =
 		| Stats, Task -> To_stats.Task.from_db db
 		| Stats, Session -> To_stats.Session.from_db db
 
-		| _, _ -> assert false
+		| _, _ -> assert false);
+    Gc.print_stat stdout;;

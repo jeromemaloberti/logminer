@@ -17,3 +17,8 @@ session_parser.dot: session_parser.rl
 session_parser.ml: session_parser.rl
 	$(RAGEL) $(RAGELFLAGS) -O -G0 $< -o $@
 
+install: all
+	ocamlfind install logminer META _obuild/logminer/*.cma _obuild/logminer/*.cmi _obuild/logminer/*.cmxa _obuild/logminer/*.a
+
+uninstall:
+	ocamlfind remove logminer
