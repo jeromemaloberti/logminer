@@ -220,6 +220,14 @@ let rec iter_with_special_end f g = function
 	| [h] -> g h
 	| h:: t -> f h; iter_with_special_end f g t
 
+let uniquify table s =
+  try Hashtbl.find table s with
+      Not_found -> 
+        begin
+          Hashtbl.add table s s; 
+          s
+        end
+
 (* size of the terminal columns *)
 let size_of_terminal = 76
 

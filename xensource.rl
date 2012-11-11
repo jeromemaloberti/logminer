@@ -8,6 +8,13 @@ let debug (fmt: ('a, unit, string, unit) format4) : 'a =
 
 let fail fmt = Printf.ksprintf failwith fmt
 
+let cache_task_names = Hashtbl.create 128
+let cache_thread_infos = Hashtbl.create 16
+let cache_hosts = Hashtbl.create 16
+let cache_keys = Hashtbl.create 32
+
+exception Goto_out
+
 let line_num = ref 0
 
 type task = TaskDestruction 
@@ -47,7 +54,6 @@ let parse_xensource ?log_counter data =
   let error = ref Log.Ok in
   let _int = ref 0 in 
   let _pos = ref 0 in
-  let mesg_pos = ref 0 in
   let get_current_string () = String.sub data !_pos (!p - !_pos) in
   
   let pool = ref false in
@@ -71,20 +77,20 @@ let parse_xensource ?log_counter data =
     thread_id := !_int;
     date := Some (Date.make ~day:!day ~month:!month ~year:2012 ~hours:!hour ~minutes:!min ~seconds:!sec ~ms:0 ~line: (match log_counter with Some l -> l | None -> 0))
   }
-  action thread_info { thread_info := Some (get_current_string ()) }
+  action thread_info { thread_info := Some (Util.uniquify cache_thread_infos (get_current_string ())) }
   action info { level := Log.Info }
   action warn { level := Log.Warn }
   action debug { level := Log.Debug }
   action error { level := Log.Error }
-  action host { host := get_current_string () }
-  action key { key := get_current_string () }
-  action repeat_msg { empty_log_line := true }
+  action host { host := Util.uniquify cache_hosts (get_current_string ()) }
+  action key { key := Util.uniquify cache_keys (get_current_string ()) }
+  action repeat_msg { empty_log_line := true; fbreak; }
   action task_name { 
     if !task_ref_bool then begin
       task_ref := Some (String.sub data (!p - 14) 14);
-      task_name := Some (String.sub data !_pos (!p - !_pos - 15));
+      task_name := Some (Util.uniquify cache_task_names (String.sub data !_pos (!p - !_pos - 15)));
     end else begin
-      task_name := Some (get_current_string ())
+      task_name := Some (Util.uniquify cache_task_names (get_current_string ()))
     end
   }
   action task_ref { task_ref_bool := true; }
@@ -103,28 +109,24 @@ let parse_xensource ?log_counter data =
   key = (any - ']')+ >mark_pos %key;
   description = '[' level_re '|' host2 '|' thread '|' task '|' key ']';
   squeezed = path? . 'squeezed:'; 
-  repeat_msg = ('last message repeated ' . any+) @repeat_msg;
+  repeat_msg = ('last message repeated') @repeat_msg;
   main := date_time_re . space . host1 . space . 
     ((program . space . description . space . message) | repeat_msg);
 
   write init;
-  write exec;
 }%%
+  begin
+    try 
+%%{
+    write exec;
+}%%
+    with Goto_out -> cs := xensource_first_final | _ -> ();
+  end;
 
   line_num := !line_num + 1;
 	if !cs < xensource_first_final then
     fail "xensource: line %d cs %d < %d" !line_num !cs xensource_first_final;
-(*
-  let get_string v = match v with None -> "(none)" | Some s -> s in
-  if !empty_log_line then begin
-    Printf.printf "Empty\n"
-  end else begin
-    Printf.printf " TID %d name %s level %s host %s task [%s] ref [%s] key [%s] msg [%s]\n" 
-      !thread_id (get_string !thread_info) 
-      (Log.string_of_level !level) !host (get_string !task_name) (get_string !task_ref)
-      !key !message
-  end;
-*)
+
   if !empty_log_line then begin
     (None,None,Nothing)
   end else begin
@@ -134,25 +136,6 @@ let parse_xensource ?log_counter data =
     (Some log, !session_log, !mesg_task)
   end
   ;;
-(*  
-let () =
-  let date = "Sep 24 02:58:30 localhost /opt/xcp-networkd: [debug|localhost.localdomain|0 thread_zero|Task blah R:001122334455|networkd] Error whilst importing db objects into master; aborted: Api_errors.Server_error(INTERNAL_ERROR, _)" in
-  let date2 = "Sep 24 02:58:54 localhost last message repeated 2 times" in
-  ignore(parse_xensource date); 
-  ignore(parse_xensource date2);
-  let date = "Sep 24 02:58:30 localhost /opt/xcp-networkd: [debug|localhost.localdomain|0 thread_zero|Task blah|networkd] Xapi_cli.exception_handler: Got exception INTERNAL_ERROR: [ Cli_util.Cli_failure(Key iscsi_iqn not found in map) ]" in
-  ignore(parse_xensource date); 
-  let date = "Sep 24 02:58:30 localhost /opt/xcp-networkd: [debug|localhost.localdomain|0 thread_zero||networkd] Raised at client.ml:6.37-75 -> xapi_xenops.ml:1398.19-89 -> pervasiveext.ml:22.2-9" in
-  ignore(parse_xensource date); 
-  let ic = open_in Sys.argv.(1) in
-  try
-    while true do
-      ignore(parse_xensource (input_line ic))
-    done
-  with End_of_file ->
-    close_in ic 
-;;
-*)
 (*
     390 string [squeezed]
      22 string [v6d]
