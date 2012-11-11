@@ -1,0 +1,6 @@
+name = "logminer"
+version = "0.1.0"
+description = "Log analyzer library for Xensource.log"
+requires = "unix,str"
+archive(byte) = "logminer.cma"
+archive(native) = "logminer.cmxa"
