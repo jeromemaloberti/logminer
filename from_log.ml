@@ -11,7 +11,7 @@ let info (fmt: ('a, unit, string, unit) format4) : 'a =
 let debug (fmt: ('a, unit, string, unit) format4) : 'a =
 	kprintf (fun s -> print_endline s; flush stdout) fmt
 
-type session = Xensource.session
+type session = Message.session
 
 type env = {
 	log_queue : Filter.Base.log Queue.t;
@@ -58,7 +58,7 @@ let env_to_db env =
 	let tasks = Hashtbl.fold (fun _ task accu -> task:: accu) env.task_tbl [] in
 	let tasks = List.sort Task.compare tasks in
 	
-	let sessions = Hashtbl.fold (fun _ session accu -> match session with Xensource.Session s -> s :: accu | Xensource.Destruction _ -> accu) env.session_tbl [] in
+	let sessions = Hashtbl.fold (fun _ session accu -> match session with Message.Session s -> s :: accu | Message.Destruction _ -> accu) env.session_tbl [] in
 	let sessions = List.sort Session.compare sessions in
 	
 	Db.make ~logs ~tasks ~sessions
@@ -88,24 +88,24 @@ struct
 		let trackid = Session.trackid s in
 		if Hashtbl.mem env.session_tbl trackid then begin
 			match Hashtbl.find env.session_tbl trackid with
-			| Xensource.Session _ -> debug "Warning: duplicated session creation for trackid: %s" trackid; ()
-			| Xensource.Destruction (_, d) ->
+			| Message.Session _ -> debug "Warning: duplicated session creation for trackid: %s" trackid; ()
+			| Message.Destruction (_, d) ->
 				Session.set_destruction s d;
-				Hashtbl.replace env.session_tbl trackid (Xensource.Session s)
+				Hashtbl.replace env.session_tbl trackid (Message.Session s)
 		end else
-			Hashtbl.add env.session_tbl trackid (Xensource.Session s)
+			Hashtbl.add env.session_tbl trackid (Message.Session s)
 	
 	let session_destruction env trackid date =
 		if Hashtbl.mem env.session_tbl trackid then begin
 			match Hashtbl.find env.session_tbl trackid with
-			| Xensource.Session s -> Session.set_destruction s date
-			| Xensource.Destruction _ -> debug "Warning: duplicated session destruction for trackid %s" trackid; ()
+			| Message.Session s -> Session.set_destruction s date
+			| Message.Destruction _ -> debug "Warning: duplicated session destruction for trackid %s" trackid; ()
 		end else
-			Hashtbl.add env.session_tbl trackid (Xensource.Destruction (trackid, date))
+			Hashtbl.add env.session_tbl trackid (Message.Destruction (trackid, date))
 	
 	let session env = function
-		| Some (Xensource.Session s) -> session_creation env s
-		| Some (Xensource.Destruction (trackid, date)) -> session_destruction env trackid date
+		| Some (Message.Session s) -> session_creation env s
+		| Some (Message.Destruction (trackid, date)) -> session_destruction env trackid date
 		| None -> ()
 	
 	let update_session_of_task env task =
@@ -114,10 +114,10 @@ struct
 		| Some trackid ->
 			if Hashtbl.mem env.session_tbl trackid then
 				match Hashtbl.find env.session_tbl trackid with
-				| Xensource.Session session ->
+				| Message.Session session ->
 					Task.set_session task session;
 					Session.add_task session task
-				| Xensource.Destruction _ -> ()
+				| Message.Destruction _ -> ()
 	
 	(*---------------------- First update stage of task informations ---------------------------------*)
 	(* At this point, the task relationships are not relevant as log lines are not ordered when files *)
@@ -179,12 +179,13 @@ let get n expr =
 	with Not_found -> None
 
 let log_of_line ?log_counter line =
-  let log,session,task = Xensource.parse_xensource line in
-  let log = match log with None -> None
-    | Some (d,h,l,tn,ti,tr,ta,k,e,m) ->
-        Some (Log.make d h l tn ti tr ta k e m) in
-  (log,session,task)
-
+  let log = Xensource.parse_xensource line in
+  match log with None -> None,None,Message.Nothing
+    | Some (d,h,l,tn,ti,tr,ta,k,m) ->
+        let error,session,task = Message.parse_message m d in
+        let log = Some (Log.make d h l tn ti tr ta k error m) in
+        (log,session,task)
+          
 let is_a_dispatch_task = function
 	| None -> false
 	| Some t -> Util.startswith "dispatch:" (Task.task_name t)
@@ -205,7 +206,7 @@ let tasks_of_log cache log parsed_task =
 				  else Task.from_log log in
 		Util.may
 			(fun x ->
-				if parsed_task = Xensource.TaskDestruction then Task.set_destroyed x;
+				if parsed_task = Message.TaskDestruction then Task.set_destroyed x;
 				if Task.has_no_parent x then Task.set_parent_to_ref x (Task.task_ref x))
 			t;
 		t
@@ -213,8 +214,8 @@ let tasks_of_log cache log parsed_task =
 	(* Created task *)
 	let created_task =
     match parsed_task with  
-      | Xensource.TaskDestruction -> None
-      | Xensource.TaskCreation(task_name,task_ref,task_uuid,trackid, parent_ref, forwarded) -> 
+      | Message.TaskDestruction -> None
+      | Message.TaskCreation(task_name,task_ref,task_uuid,trackid, parent_ref, forwarded) -> 
           begin
 			      let t =
 			        if Hashtbl.mem cache (host, thread_id, task_ref)
@@ -231,7 +232,7 @@ let tasks_of_log cache log parsed_task =
             end;
 			      Some t
           end
-      | Xensource.TaskAsync(trackid) ->
+      | Message.TaskAsync(trackid) ->
 					(* If the task is asynchronous *)
 			    let t =
 				    match Log.task_ref log with
@@ -247,7 +248,7 @@ let tasks_of_log cache log parsed_task =
 						  Util.may (fun task -> Task.set_parent_to_update t task) task)
 				    t;
 			    t
-      | Xensource.Nothing ->
+      | Message.Nothing ->
 			    None
 	in
 	

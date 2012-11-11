@@ -17,18 +17,10 @@ exception Goto_out
 
 let line_num = ref 0
 
-type task = TaskDestruction 
-            | TaskCreation of string * string * string option * string option * string option * bool
-            | TaskAsync of string option
-            | Nothing
-
-type session = Session of Filter.Base.session | Destruction of string * Date.t
-
 %%{
   machine xensource;
   write data;
   include date_time "date_time.rl";
-  include message "message.rl";
 }%%
 
 let parse_xensource ?log_counter data =
@@ -51,27 +43,14 @@ let parse_xensource ?log_counter data =
   let task_ref_bool = ref false in
   let key = ref "" in
   let message = ref "" in
-  let error = ref Log.Ok in
   let _int = ref 0 in 
   let _pos = ref 0 in
   let get_current_string () = String.sub data !_pos (!p - !_pos) in
   
-  let pool = ref false in
-  let uname = ref "" in
-  let local_su = ref false in
-  let trackid = ref "" in
-(*  let parent_trackid = ref "" in *)
-  let auth = ref "" in
-  let session_log = ref None in
   let date = ref None in
-  let mesg_task_name = ref "" in
-  let mesg_task_ref = ref "" in
-  let mesg_task_uuid = ref None in
-  let mesg_task_trackid = ref None in
-  let mesg_parent_task_ref = ref None in
-  let mesg_task = ref Nothing in
 %%{
   action do_nothing { }
+  action mark_pos { _pos := !p }
   action print_string { Printf.printf "[%s] " (get_current_string ()) }
   action thread_id { 
     thread_id := !_int;
@@ -94,6 +73,7 @@ let parse_xensource ?log_counter data =
     end
   }
   action task_ref { task_ref_bool := true; }
+  action mark_mesg_pos { message := String.sub data !p (!pe - !p); fbreak; }
 
   host1 = (any - space)+;
   host2 = (any - '|')+ >mark_pos %host;
@@ -110,6 +90,7 @@ let parse_xensource ?log_counter data =
   description = '[' level_re '|' host2 '|' thread '|' task '|' key ']';
   squeezed = path? . 'squeezed:'; 
   repeat_msg = ('last message repeated') @repeat_msg;
+  message = (any*) >mark_mesg_pos;
   main := date_time_re . space . host1 . space . 
     ((program . space . description . space . message) | repeat_msg);
 
@@ -128,12 +109,12 @@ let parse_xensource ?log_counter data =
     fail "xensource: line %d cs %d < %d" !line_num !cs xensource_first_final;
 
   if !empty_log_line then begin
-    (None,None,Nothing)
+    None
   end else begin
     let d = match !date with None -> fail "Date not created"
       | Some v -> v in
-    let log = (d, !host, !level, !thread_info, !thread_id, !task_ref, !task_name, !key, !error, !message) in
-    (Some log, !session_log, !mesg_task)
+    let log = (d, !host, !level, !thread_info, !thread_id, !task_ref, !task_name, !key, !message) in
+    Some log
   end
   ;;
 (*

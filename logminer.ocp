@@ -27,7 +27,7 @@ begin library "logminer"
   files = [
     "xensource.ml"; "date.ml"; "log.ml"; "from_log.ml"; "util.ml"; "task.ml"; "session.ml";
     "filter.ml"; "check.ml"; "db.ml"; "info.ml"; "to_text.ml"; "parser.mly"; "lexer.mll";
-    "to_jira.ml"; "to_csv.ml"; "to_html.ml"; "to_stats.ml"
+    "to_jira.ml"; "to_csv.ml"; "to_html.ml"; "to_stats.ml"; "message.ml"
   ]
   requires = [ "unix"; "str" ] 
 end
