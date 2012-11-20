@@ -86,13 +86,16 @@ struct
 			root = aux env.root (String.length root);
 			duration = aux env.duration (String.length duration);
 			stats = aux env.stats (String.length stats) }
-	
-	let from_db db =
+
+	let from_session_list l =
 		let env =
 			if !auto_resize
-			then List.fold_left update_env (create_env ()) db.Db.sessions
+			then List.fold_left update_env (create_env ()) l
 			else create_env () in
-		List.iter (fun s -> printf "%s\n" (string_of_session env s)) db.Db.sessions
+		List.iter (fun s -> printf "%s\n" (string_of_session env s)) l
+    
+	let from_db db = from_session_list db.Db.sessions
+
 end
 
 module Task =

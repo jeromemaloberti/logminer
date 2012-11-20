@@ -1,13 +1,13 @@
 ocamlc = ["ocp-ocamlc.opt"]
-ocamlopt = ["ocp-ocamlopt.opt";(* "-p"*) ]
+ocamlopt = ["ocp-ocamlopt.opt"; "-g" ]
 ocamldep = ["ocamldep.opt"]
 ocamllex = ["ocamllex.opt"]
 ocamlyacc = ["ocamlyacc"]
 
-(*
+
 comp = ["-g"; "-warn-error"; "A"]
 link = ["-g"]
-*)
+
 cflags = []
 (* ccopt = [] *)
 
@@ -27,7 +27,7 @@ begin library "logminer"
   files = [
     "xensource.ml"; "date.ml"; "log.ml"; "from_log.ml"; "util.ml"; "task.ml"; "session.ml";
     "filter.ml"; "check.ml"; "db.ml"; "info.ml"; "to_text.ml"; "parser.mly"; "lexer.mll";
-    "to_jira.ml"; "to_csv.ml"; "to_html.ml"; "to_stats.ml"; "message.ml"
+    "to_jira.ml"; "to_csv.ml"; "to_html.ml"; "to_stats.ml"; "message.ml"; "logminer.ml"
   ]
   requires = [ "unix"; "str" ] 
 end
