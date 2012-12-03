@@ -1,3 +1,18 @@
+(*
+ * Copyright (C) 2006-2009 Citrix Systems Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation; version 2.1 only. with the special
+ * exception on linking described in file LICENSE.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *)
+(* Author: Jerome Maloberti <jerome.maloberti@citrix.com>     *)
+
 let load_file ?(filter=Filter.All) filename = From_log.to_db filter [filename]
 
 let load_db ?(filter=Filter.All) filename = Db.from_backup_file filter filename
@@ -66,10 +81,10 @@ let count_logs db =
   let a = Array.create (Hashtbl.length table) ("",ref 0) in
   let i = ref 0 in
   Hashtbl.iter (fun k v -> a.(!i) <- (k,v); incr i) table;
-  let compare (k1,v1) (k2,v2) =
-    let res = !v2 - !v1 in
+  let compare_fun (k1,v1) (k2,v2) =
+    let res = compare !v2 !v1 in
     if res <> 0 then res 
     else String.compare k1 k2 in
-  Array.sort compare a;
+  Array.sort compare_fun a;
   a
 

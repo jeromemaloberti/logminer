@@ -13,6 +13,11 @@
  *)
 (* Author: Jerome Maloberti <jerome.maloberti@citrix.com> *)
 
+type task = TaskDestruction 
+            | TaskCreation of string * string * string option * string option * string option * bool
+            | TaskAsync of string option
+            | Nothing
+
 type session = Session of Filter.Base.session | Destruction of string * Date.t
 
-val parse_xensource_session : Date.t -> string -> session option
+val parse_message : string -> Date.t -> (Log.error * session option * task)
