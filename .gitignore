@@ -2,3 +2,4 @@ _obuild/*
 *.log
 *.db
 *.dot
+*.mustache

@@ -88,3 +88,27 @@ let count_logs db =
   Array.sort compare_fun a;
   a
 
+let tasks_summary ?(filter) tasks =
+  let regexp_ignore = 
+    Str.regexp "^xapi events\\|^dispatch:.*\\|^xenops events\\|^session.log*\\|^session.slave*" in
+  let match_regexp r s = 
+    try 
+      ignore(Str.search_forward r s 0);
+      true
+    with Not_found ->
+      false in    
+  let task_summary t =
+    (t.Task.thread_id, t.Task.task_ref, (Date.String_of.time (Date.time t.Task.creation)), 
+     (Date.Duration.to_string (Task.duration t)), t.Task.task_name) in
+  let add acc task = 
+    if (match_regexp regexp_ignore task.Task.task_name) then
+      acc
+    else 
+      match filter with None -> (task_summary task) :: acc
+      | Some f -> if (match_regexp f task.Task.task_name) then
+	  (task_summary task) :: acc
+	else
+	  acc
+  in
+  let l = List.fold_left add [] tasks in
+  List.rev l

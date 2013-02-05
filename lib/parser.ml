@@ -50,15 +50,28 @@ type token =
   | SESSION_NB_TASKS
 
 open Parsing;;
+let _ = parse_error;;
 # 2 "parser.mly"
-(* Copyright (c) Citrix Systems 2008-2009. All rights reserved. *)
+(*
+ * Copyright (C) 2006-2009 Citrix Systems Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation; version 2.1 only. with the special
+ * exception on linking described in file LICENSE.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *)
 (* Author: Thomas Gazagnaire <thomas.gazagnaire@citrix.com>     *)
 
 let parse_error s = (* Called by the parser function on error *)
     Printf.eprintf "query: %s on characters %i-%i\n" s (symbol_start ()) (symbol_end ());
     flush stdout;
     exit 4
-# 62 "parser.ml"
+# 75 "parser.ml"
 let yytransl_const = [|
   257 (* END *);
   258 (* LE *);
@@ -278,358 +291,358 @@ let yyact = [|
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'expr) in
     Obj.repr(
-# 37 "parser.mly"
+# 49 "parser.mly"
            ( _1 )
-# 284 "parser.ml"
+# 297 "parser.ml"
                : Filter.t))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 41 "parser.mly"
+# 53 "parser.mly"
                       ( Filter.All        )
-# 290 "parser.ml"
+# 303 "parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 1 : 'expr) in
     Obj.repr(
-# 42 "parser.mly"
+# 54 "parser.mly"
                       ( Filter.Not _3     )
-# 297 "parser.ml"
+# 310 "parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'expr) in
     Obj.repr(
-# 43 "parser.mly"
+# 55 "parser.mly"
                       ( _2                )
-# 304 "parser.ml"
+# 317 "parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'expr) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 44 "parser.mly"
+# 56 "parser.mly"
                       ( Filter.And[_1;_3] )
-# 312 "parser.ml"
+# 325 "parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'expr) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 45 "parser.mly"
+# 57 "parser.mly"
                       ( Filter.Or [_1;_3] )
-# 320 "parser.ml"
+# 333 "parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'item) in
     Obj.repr(
-# 46 "parser.mly"
+# 58 "parser.mly"
                       ( Filter.Item _1    )
-# 327 "parser.ml"
+# 340 "parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'compare) in
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'time) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'date) in
     Obj.repr(
-# 50 "parser.mly"
+# 62 "parser.mly"
                     ( Filter.Full_date (_1, Date.make2 ~date:_3 ~time:_2) )
-# 336 "parser.ml"
+# 349 "parser.ml"
                : 'compare_date))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'compare) in
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'date) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'time) in
     Obj.repr(
-# 51 "parser.mly"
+# 63 "parser.mly"
                     ( Filter.Full_date (_1, Date.make2 ~date:_2 ~time:_3) )
-# 345 "parser.ml"
+# 358 "parser.ml"
                : 'compare_date))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'compare) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'date) in
     Obj.repr(
-# 52 "parser.mly"
+# 64 "parser.mly"
                     ( Filter.Date (_1,_2)                                 )
-# 353 "parser.ml"
+# 366 "parser.ml"
                : 'compare_date))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'compare) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'time) in
     Obj.repr(
-# 53 "parser.mly"
+# 65 "parser.mly"
                     ( Filter.Time (_1,_2)                                 )
-# 361 "parser.ml"
+# 374 "parser.ml"
                : 'compare_date))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'compare_date) in
     Obj.repr(
-# 57 "parser.mly"
-                                ( Filter.Log_date _2                   )
-# 368 "parser.ml"
-               : 'log))
-; (fun __caml_parser_env ->
-    let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
-    Obj.repr(
-# 58 "parser.mly"
-                                ( Filter.Log_host _3                        )
-# 375 "parser.ml"
-               : 'log))
-; (fun __caml_parser_env ->
-    let _3 = (Parsing.peek_val __caml_parser_env 0 : int) in
-    Obj.repr(
-# 59 "parser.mly"
-                                ( Filter.Log_thread_id _3                   )
-# 382 "parser.ml"
-               : 'log))
-; (fun __caml_parser_env ->
-    let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
-    Obj.repr(
-# 60 "parser.mly"
-                                ( Filter.Log_thread_name _3                 )
-# 389 "parser.ml"
-               : 'log))
-; (fun __caml_parser_env ->
-    let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
-    Obj.repr(
-# 61 "parser.mly"
-                                ( Filter.Log_level (Log.level_of_string _3) )
-# 396 "parser.ml"
-               : 'log))
-; (fun __caml_parser_env ->
-    let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
-    Obj.repr(
-# 62 "parser.mly"
-                                ( Filter.Log_key _3                         )
-# 403 "parser.ml"
-               : 'log))
-; (fun __caml_parser_env ->
-    let _2 = (Parsing.peek_val __caml_parser_env 1 : 'compare) in
-    let _3 = (Parsing.peek_val __caml_parser_env 0 : 'duration) in
-    Obj.repr(
-# 63 "parser.mly"
-                                ( Filter.Log_gap_duration (_2, _3)          )
-# 411 "parser.ml"
-               : 'log))
-; (fun __caml_parser_env ->
-    let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
-    Obj.repr(
-# 64 "parser.mly"
-                                ( Filter.Log_msg _3                         )
-# 418 "parser.ml"
-               : 'log))
-; (fun __caml_parser_env ->
-    let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
-    Obj.repr(
-# 68 "parser.mly"
-                                     ( Filter.Task_ref _3                 )
-# 425 "parser.ml"
-               : 'task))
-; (fun __caml_parser_env ->
-    let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
-    Obj.repr(
 # 69 "parser.mly"
-                                     ( Filter.Task_uuid _3                )
-# 432 "parser.ml"
-               : 'task))
+                                ( Filter.Log_date _2                   )
+# 381 "parser.ml"
+               : 'log))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 70 "parser.mly"
-                                     ( Filter.Task_name _3                )
-# 439 "parser.ml"
-               : 'task))
+                                ( Filter.Log_host _3                        )
+# 388 "parser.ml"
+               : 'log))
 ; (fun __caml_parser_env ->
-    let _2 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
+    let _3 = (Parsing.peek_val __caml_parser_env 0 : int) in
     Obj.repr(
 # 71 "parser.mly"
-                                     ( Filter.Task_root _2                )
-# 446 "parser.ml"
-               : 'task))
+                                ( Filter.Log_thread_id _3                   )
+# 395 "parser.ml"
+               : 'log))
 ; (fun __caml_parser_env ->
-    let _2 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
+    let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 72 "parser.mly"
-                                     ( Filter.Task_parents _2             )
-# 453 "parser.ml"
-               : 'task))
+                                ( Filter.Log_thread_name _3                 )
+# 402 "parser.ml"
+               : 'log))
 ; (fun __caml_parser_env ->
-    let _2 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
+    let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 73 "parser.mly"
-                                     ( Filter.Task_children _2            )
-# 460 "parser.ml"
-               : 'task))
+                                ( Filter.Log_level (Log.level_of_string _3) )
+# 409 "parser.ml"
+               : 'log))
 ; (fun __caml_parser_env ->
+    let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 74 "parser.mly"
-                                     ( Filter.Task_in_database            )
-# 466 "parser.ml"
-               : 'task))
+                                ( Filter.Log_key _3                         )
+# 416 "parser.ml"
+               : 'log))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'compare) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'duration) in
     Obj.repr(
 # 75 "parser.mly"
-                                     ( Filter.Task_duration (_2, _3)      )
-# 474 "parser.ml"
-               : 'task))
+                                ( Filter.Log_gap_duration (_2, _3)          )
+# 424 "parser.ml"
+               : 'log))
 ; (fun __caml_parser_env ->
-    let _2 = (Parsing.peek_val __caml_parser_env 1 : 'compare) in
-    let _3 = (Parsing.peek_val __caml_parser_env 0 : int) in
+    let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 76 "parser.mly"
-                                     ( Filter.Task_lines (_2, _3)         )
-# 482 "parser.ml"
+                                ( Filter.Log_msg _3                         )
+# 431 "parser.ml"
+               : 'log))
+; (fun __caml_parser_env ->
+    let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
+    Obj.repr(
+# 80 "parser.mly"
+                                     ( Filter.Task_ref _3                 )
+# 438 "parser.ml"
                : 'task))
 ; (fun __caml_parser_env ->
-    let _2 = (Parsing.peek_val __caml_parser_env 1 : 'compare) in
-    let _3 = (Parsing.peek_val __caml_parser_env 0 : int) in
+    let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 77 "parser.mly"
-                                     ( Filter.Task_nb_children (_2,_3)    )
-# 490 "parser.ml"
+# 81 "parser.mly"
+                                     ( Filter.Task_uuid _3                )
+# 445 "parser.ml"
+               : 'task))
+; (fun __caml_parser_env ->
+    let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
+    Obj.repr(
+# 82 "parser.mly"
+                                     ( Filter.Task_name _3                )
+# 452 "parser.ml"
+               : 'task))
+; (fun __caml_parser_env ->
+    let _2 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
+    Obj.repr(
+# 83 "parser.mly"
+                                     ( Filter.Task_root _2                )
+# 459 "parser.ml"
+               : 'task))
+; (fun __caml_parser_env ->
+    let _2 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
+    Obj.repr(
+# 84 "parser.mly"
+                                     ( Filter.Task_parents _2             )
+# 466 "parser.ml"
+               : 'task))
+; (fun __caml_parser_env ->
+    let _2 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
+    Obj.repr(
+# 85 "parser.mly"
+                                     ( Filter.Task_children _2            )
+# 473 "parser.ml"
                : 'task))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 78 "parser.mly"
-                                     ( Filter.Task_not_completed          )
-# 496 "parser.ml"
+# 86 "parser.mly"
+                                     ( Filter.Task_in_database            )
+# 479 "parser.ml"
                : 'task))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'compare) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'duration) in
     Obj.repr(
-# 79 "parser.mly"
+# 87 "parser.mly"
+                                     ( Filter.Task_duration (_2, _3)      )
+# 487 "parser.ml"
+               : 'task))
+; (fun __caml_parser_env ->
+    let _2 = (Parsing.peek_val __caml_parser_env 1 : 'compare) in
+    let _3 = (Parsing.peek_val __caml_parser_env 0 : int) in
+    Obj.repr(
+# 88 "parser.mly"
+                                     ( Filter.Task_lines (_2, _3)         )
+# 495 "parser.ml"
+               : 'task))
+; (fun __caml_parser_env ->
+    let _2 = (Parsing.peek_val __caml_parser_env 1 : 'compare) in
+    let _3 = (Parsing.peek_val __caml_parser_env 0 : int) in
+    Obj.repr(
+# 89 "parser.mly"
+                                     ( Filter.Task_nb_children (_2,_3)    )
+# 503 "parser.ml"
+               : 'task))
+; (fun __caml_parser_env ->
+    Obj.repr(
+# 90 "parser.mly"
+                                     ( Filter.Task_not_completed          )
+# 509 "parser.ml"
+               : 'task))
+; (fun __caml_parser_env ->
+    let _2 = (Parsing.peek_val __caml_parser_env 1 : 'compare) in
+    let _3 = (Parsing.peek_val __caml_parser_env 0 : 'duration) in
+    Obj.repr(
+# 91 "parser.mly"
                                      ( Filter.Task_gap_duration (_2, _3)  )
-# 504 "parser.ml"
+# 517 "parser.ml"
                : 'task))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'log) in
     Obj.repr(
-# 83 "parser.mly"
+# 95 "parser.mly"
           ( Filter.Log _1     )
-# 511 "parser.ml"
+# 524 "parser.ml"
                : 'item))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'task) in
     Obj.repr(
-# 84 "parser.mly"
+# 96 "parser.mly"
           ( Filter.Task _1    )
-# 518 "parser.ml"
+# 531 "parser.ml"
                : 'item))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'session) in
     Obj.repr(
-# 85 "parser.mly"
+# 97 "parser.mly"
           ( Filter.Session _1 )
-# 525 "parser.ml"
+# 538 "parser.ml"
                : 'item))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 88 "parser.mly"
+# 100 "parser.mly"
                                     ( Filter.Session_trackid _3         )
-# 532 "parser.ml"
+# 545 "parser.ml"
                : 'session))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 89 "parser.mly"
+# 101 "parser.mly"
                                     ( Filter.Session_uname _3           )
-# 539 "parser.ml"
+# 552 "parser.ml"
                : 'session))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'compare_date) in
     Obj.repr(
-# 90 "parser.mly"
+# 102 "parser.mly"
                                     ( Filter.Session_creation _2        )
-# 546 "parser.ml"
+# 559 "parser.ml"
                : 'session))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'compare_date) in
     Obj.repr(
-# 91 "parser.mly"
+# 103 "parser.mly"
                                     ( Filter.Session_destruction _2     )
-# 553 "parser.ml"
+# 566 "parser.ml"
                : 'session))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'compare) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'duration) in
     Obj.repr(
-# 92 "parser.mly"
+# 104 "parser.mly"
                                     ( Filter.Session_duration  (_2, _3) )
-# 561 "parser.ml"
+# 574 "parser.ml"
                : 'session))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'compare) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : int) in
     Obj.repr(
-# 93 "parser.mly"
+# 105 "parser.mly"
                                     ( Filter.Session_nb_tasks (_2, _3)  )
-# 569 "parser.ml"
+# 582 "parser.ml"
                : 'session))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 96 "parser.mly"
+# 108 "parser.mly"
           ( Scanf.sscanf _1 "%04d%02d%02d" (fun y m d -> Date.make_date ~day:d ~month:m ~year:y) )
-# 576 "parser.ml"
+# 589 "parser.ml"
                : 'date))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 100 "parser.mly"
+# 112 "parser.mly"
               ( Date.Duration.of_string _1 )
-# 583 "parser.ml"
+# 596 "parser.ml"
                : 'duration))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 104 "parser.mly"
+# 116 "parser.mly"
             ( Scanf.sscanf _1 "%02d:%02d:%02d" (fun hours minutes seconds -> Date.make_time ~hours ~minutes ~seconds ~ms:0)     )
-# 590 "parser.ml"
+# 603 "parser.ml"
                : 'time))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 105 "parser.mly"
+# 117 "parser.mly"
             ( Scanf.sscanf _1 "%02d:%02d:%02d.%d" (fun hours minutes seconds ms -> Date.make_time ~hours ~minutes ~seconds ~ms) )
-# 597 "parser.ml"
+# 610 "parser.ml"
                : 'time))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 109 "parser.mly"
+# 121 "parser.mly"
       ( Filter.LE  )
-# 603 "parser.ml"
+# 616 "parser.ml"
                : 'compare))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 110 "parser.mly"
+# 122 "parser.mly"
       ( Filter.LEQ )
-# 609 "parser.ml"
+# 622 "parser.ml"
                : 'compare))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 111 "parser.mly"
+# 123 "parser.mly"
       ( Filter.GE  )
-# 615 "parser.ml"
+# 628 "parser.ml"
                : 'compare))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 112 "parser.mly"
+# 124 "parser.mly"
       ( Filter.GEQ )
-# 621 "parser.ml"
+# 634 "parser.ml"
                : 'compare))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 113 "parser.mly"
+# 125 "parser.mly"
       ( Filter.EQ  )
-# 627 "parser.ml"
+# 640 "parser.ml"
                : 'compare))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 114 "parser.mly"
+# 126 "parser.mly"
       ( Filter.NE  )
-# 633 "parser.ml"
+# 646 "parser.ml"
                : 'compare))
 (* Entry main *)
 ; (fun __caml_parser_env -> raise (Parsing.YYexit (Parsing.peek_val __caml_parser_env 0)))

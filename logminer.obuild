@@ -1,0 +1,16 @@
+Name:  logminer
+Version: 0.1.0
+Synopsis: Log analyzer library for Xensource.log
+Authors: Thomas Gazagnaire and Jerome Maloberti
+License:     LGPL-2.1 with OCaml linking exception
+obuild-ver:  1
+
+Library logminer
+  Path: lib/
+  Modules: Xensource, Date, Log, From_log, Util, Task, Session, Filter, Check, Db, Info, To_text, Parser, Lexer, To_jira, To_csv, To_html, To_stats, Message, Logminer
+  BuildDepends: unix, str
+
+Executable            logfilter
+  Path:               logfilter/
+  MainIs:             main.ml
+  BuildDepends:       logminer
