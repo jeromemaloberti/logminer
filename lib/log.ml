@@ -67,10 +67,9 @@ let make ~date ~host ~level ~thread_name ~thread_id ~task_ref ~task_name ~key ~e
 	}
 
 let sort a b =
-	let c, d = Date.sort a.date b.date in
-	if c = a.date
-	then a, b
-	else b, a
+  if Date.compare a.date b.date > 0 
+  then (b, a)
+  else (a, b)
 
 let min a b = fst (sort a b)
 let max a b = snd (sort a b)

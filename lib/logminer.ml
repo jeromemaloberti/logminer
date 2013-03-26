@@ -82,21 +82,28 @@ let count_logs db =
   let i = ref 0 in
   Hashtbl.iter (fun k v -> a.(!i) <- (k,v); incr i) table;
   let compare_fun (k1,v1) (k2,v2) =
-    let res = compare !v2 !v1 in
+    let res = Util.compare_int !v2 !v1 in
     if res <> 0 then res 
     else String.compare k1 k2 in
   Array.sort compare_fun a;
   a
 
+let match_regexp r s = 
+  try 
+    ignore(Str.search_forward r s 0);
+    true
+  with Not_found ->
+    false
+
+let fold_root_tasks f acc tasks =
+  let test acc task = if Task.parent task <> None then
+      acc else (f acc task) in
+  let l = List.fold_left test acc tasks in
+  List.rev l
+
 let tasks_summary ?(filter) tasks =
   let regexp_ignore = 
     Str.regexp "^xapi events\\|^dispatch:.*\\|^xenops events\\|^session.log*\\|^session.slave*" in
-  let match_regexp r s = 
-    try 
-      ignore(Str.search_forward r s 0);
-      true
-    with Not_found ->
-      false in    
   let task_summary t =
     (t.Task.thread_id, t.Task.task_ref, (Date.String_of.time (Date.time t.Task.creation)), 
      (Date.Duration.to_string (Task.duration t)), t.Task.task_name) in
@@ -110,5 +117,43 @@ let tasks_summary ?(filter) tasks =
 	else
 	  acc
   in
-  let l = List.fold_left add [] tasks in
-  List.rev l
+  fold_root_tasks add [] tasks
+
+
+let tasks_timings tasks =
+  let regexp_ignore = 
+    Str.regexp "^xapi events\\|^dispatch:.*\\|^xenops events\\|^session.log*\\|^session.slave*" in
+  let gather_logs task =
+    let acc = ref [] in
+    let rec aux t =
+      acc := List.append !acc t.Task.logs;
+      List.iter (fun c -> aux c) t.Task.children in
+    aux task;
+    !acc in
+  let search_logs regexp task logs s =
+    let r = Str.regexp regexp in
+    let res = List.filter (fun l -> match_regexp r (Log.msg l)) logs in
+    List.map (fun l -> (Date.Duration.to_float (Date.sub l.Log.date task.Task.creation)),
+      (Date.to_float l.Log.date), s(*,(Log.msg l)*)) res in
+  let task_summary t =
+    let logs = gather_logs t in
+    (t.Task.task_ref, (Date.to_float t.Task.creation),
+     (Date.Duration.to_float (Task.duration t)), 
+     (Date.Duration.to_float (t.Task.total_stats.Task.gap)),
+   (*  (search_logs "^Device.Dm.start.*" t logs "Device.Dm.start"), *)
+     (search_logs "^VM.unpause" t logs "VM.unpause"),
+     (search_logs "^UPDATES.refresh_vm" t logs "refresh_vm"),
+     (search_logs "^UPDATES.inject_barrier" t logs "inject_barrier"),
+     (search_logs "^Signalling xenapi event thread to re-register" t
+     logs "re-register"),
+     (search_logs "^VM.stat " t logs "VM.stat")
+) in
+  let add acc task = 
+    if (match_regexp regexp_ignore task.Task.task_name) then
+      acc
+    else 
+      (task_summary task) :: acc
+  in
+  fold_root_tasks add [] tasks
+
+

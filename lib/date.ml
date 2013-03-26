@@ -74,27 +74,31 @@ let sub a b : duration =
 	end
 
 let compare_date a b =
-	if compare a.year b.year <> 0
-	then compare a.year b.year
-	else if compare a.month b.month <> 0
-	then compare a.month b.month
-	else compare a.day b.day
+  let y = Util.compare_int a.year b.year in
+  if y <> 0 then y
+  else 
+    let m = Util.compare_int a.month b.month in
+    if m <> 0 then m
+    else Util.compare_int a.day b.day
 
 let compare_time a b =
-	if compare a.hours b.hours <> 0
-	then compare a.hours b.hours
-	else if compare a.minutes b.minutes <> 0
-	then compare a.minutes b.minutes
-	else if compare a.seconds b.seconds <> 0
-	then compare a.seconds b.seconds
-	else compare a.ms b.ms
+  let h = Util.compare_int a.hours b.hours in
+  if h <> 0 then h 
+  else
+    let m = Util.compare_int a.minutes b.minutes in
+    if m <> 0 then m
+    else
+      let s = Util.compare_int a.seconds b.seconds in
+      if s <> 0 then s
+      else Util.compare_int a.ms b.ms
 
 let compare a b =
-	if compare_date a.date b.date <> 0
-	then compare_date a.date b.date
-	else if compare_time a.time b.time <> 0
-	then compare_time a.time b.time
-	else compare a.line b.line
+  let d = compare_date a.date b.date in
+  if d <> 0 then d
+  else
+    let t = compare_time a.time b.time in
+    if t <> 0 then t
+    else Util.compare_int a.line b.line
 
 let sort a b =
 	if compare a b > 0

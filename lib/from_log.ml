@@ -27,7 +27,7 @@ let debug (fmt: ('a, unit, string, unit) format4) : 'a =
 type session = Message.session
 
 type env = {
-	log_queue : Filter.Base.log Queue.t;
+	mutable log_queue : Filter.Base.log list;
 	mutable log_counter : int;
 	mutable last_log_line : Filter.Base.log option;
 	mutable aggreg_non_matched_lines : bool;
@@ -47,7 +47,7 @@ type env = {
 let force_monotonous = ref false
 
 let create_env filter = {
-	log_queue = Queue.create ();
+	log_queue = [];
 	log_counter = 0;
 	last_log_line = None;
 	aggreg_non_matched_lines = true;
@@ -65,8 +65,8 @@ let create_env filter = {
 	is_monotonous = Check.is_monotonous filter || !force_monotonous }
 
 let env_to_db env =
-	let logs = List.rev (Queue.fold (fun acc l -> l :: acc) [] env.log_queue) in
-	let logs = List.sort Log.compare logs in
+  let logs = List.rev env.log_queue in
+(*	let logs = List.sort Log.compare logs in *)
 	
 	let tasks = Hashtbl.fold (fun _ task accu -> task:: accu) env.task_tbl [] in
 	let tasks = List.sort Task.compare tasks in
@@ -83,9 +83,9 @@ struct
 	let queue_add env log =
 		if not env.filter_online then begin
 			env.last_log_line <- Some log;
-			Queue.add log env.log_queue
+			env.log_queue <- log :: env.log_queue
 		end else if env.log_filter log then begin
-			Queue.add log env.log_queue;
+			env.log_queue <- log :: env.log_queue;
 			env.aggreg_non_matched_lines <- true;
 			env.last_log_line <- Some log
 		end else
@@ -395,7 +395,7 @@ let to_db filter files =
 	
 	info "%s%!" (Util.left Util.size_of_terminal
 				(Printf.sprintf "Sorting %i log lines, %i tasks and %i sessions"
-						(Queue.length env.log_queue)
+						(List.length env.log_queue)
 						(Hashtbl.length env.task_tbl)
 						(Hashtbl.length env.session_tbl)));
 	let db = env_to_db env in

@@ -24,6 +24,8 @@ let () = Random.self_init ()
 let version = "1.1"
 let xenserver_release = "6.0"
 
+let compare_int a b = a - b
+
 (*************************************************************************************)
 (*       Imported from stdext to be able to compile outside the chroot               *)
 (*************************************************************************************)
