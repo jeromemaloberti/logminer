@@ -1,31 +1,40 @@
 SUFFIXES = .rl .dot
 RAGEL = ragel
+PREFIX?=/usr/local
 
-all: xensource.ml message.ml _obuild/logminer/logminer.asm xensource.dot message.dot
+.DEFAULT: all
+all: dist/setup
+	obuild build
 
-_obuild/logminer/logminer.asm: xensource.ml logminer.ocp *.ml
-	ocp-build
+dist/setup:
+	obuild configure
 
-xensource.dot: xensource.rl
+clean:
+	obuild clean
+
+xensource.dot: lib/xensource.rl
 	$(RAGEL) $(RAGELFLAGS) -V -p $< -o $@
 
-xensource.ml: xensource.rl date_time.rl
+lib/xensource.ml: lib/xensource.rl lib/date_time.rl
 	$(RAGEL) $(RAGELFLAGS) -O -F1 $< -o $@
 
-message.dot: message.rl
+message.dot: lib/message.rl
 	$(RAGEL) $(RAGELFLAGS) -V -p $< -o $@
 
-message.ml: message.rl
+lib/message.ml: lib/message.rl
 	$(RAGEL) $(RAGELFLAGS) -O -F1 $< -o $@
 
-session_parser.dot: session_parser.rl
+session_parser.dot: lib/session_parser.rl
 	$(RAGEL) $(RAGELFLAGS) -V -p $< -o $@
 
-session_parser.ml: session_parser.rl
+lib/session_parser.ml: lib/session_parser.rl
 	$(RAGEL) $(RAGELFLAGS) -O -F1 $< -o $@
 
 install: all
-	ocamlfind install logminer META _obuild/logminer/*.cma _obuild/logminer/*.cmi _obuild/logminer/*.cmxa _obuild/logminer/*.a
+	ocamlfind install logminer META dist/build/lib-logminer/*.cma dist/build/lib-logminer/*.cmi dist/build/lib-logminer/*.cmxa dist/build/lib-logminer/*.a
+	cp dist/build/logfilter/logfilter $(PREFIX)/bin/
 
 uninstall:
 	ocamlfind remove logminer
+	rm $(PREFIX)/bin/logfilter
+
