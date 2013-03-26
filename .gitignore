@@ -1,5 +1,4 @@
-_obuild/*
+dist/
 *.log
 *.db
 *.dot
-*.mustache
